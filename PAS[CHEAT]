@@ -22,7 +22,6 @@ local JoinAsSeekerResponse = GameRemotes:WaitForChild("JoinAsSeekerResponse")
 
 -- Toggle States
 local alwaysSeekerEnabled = false
-local autoResetSeeker = false
 local autoTauntEnabled = false
 local espEnabled = false
 local espObjects = {}
@@ -62,42 +61,12 @@ MainTab:Toggle({
                 local args = { true }
                 while alwaysSeekerEnabled do
                     JoinAsSeekerResponse:FireServer(unpack(args))
-                    task.wait(1)
+                    task.wait(1) -- Adjust delay if needed
                 end
             end)
             print("[WindUI] Always Be Seeker loop activated.")
         else
             print("[WindUI] Always Be Seeker loop deactivated.")
-        end
-    end
-})
-
--- Auto Reset Toggle (Triggers character reset when trying to be a seeker)
-MainTab:Toggle({
-    Title = "Auto Reset For Seeker",
-    Desc = "Resets your character automatically to force the Seeker change.",
-    Value = false,
-    Callback = function(state)
-        autoResetSeeker = state
-        
-        if autoResetSeeker then
-            task.spawn(function()
-                while autoResetSeeker do
-                    -- Only resets if the loop is active and character exists
-                    if alwaysSeekerEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                        LocalPlayer.Character.Humanoid.Health = 0
-                        print("[WindUI] Force reset character to update Seeker status.")
-                        
-                        -- Wait until they respawn fully before checking/resetting again
-                        LocalPlayer.CharacterAdded:Wait()
-                        task.wait(2) 
-                    end
-                    task.wait(1)
-                end
-            end)
-            print("[WindUI] Auto Reset for Seeker Enabled.")
-        else
-            print("[WindUI] Auto Reset for Seeker Disabled.")
         end
     end
 })
@@ -226,3 +195,4 @@ VisualsTab:Toggle({
 
 -- Automatically open to Main tab on load
 Window:SelectTab(MainTab)
+
