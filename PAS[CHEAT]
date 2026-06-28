@@ -1,226 +1,58 @@
--- [[ WindUI Library Initialization ]]
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-
--- Create the Main Window
-local Window = WindUI:CreateWindow({
-    Title = "Paint And Seek Cheat [BETA]",
-    SubTitle = "by mikmikuser123",
-    Author = "Universal",
-    Size = UDim2.fromOffset(550, 380),
-    HasOutline = true,
-    Theme = "Dark"
-})
-
--- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Remotes
-local GameRemotes = ReplicatedStorage:WaitForChild("GameRemotes")
-local JoinAsSeekerResponse = GameRemotes:WaitForChild("JoinAsSeekerResponse")
+local KnifeHit = ReplicatedStorage:WaitForChild("Knife"):WaitForChild("Remotes"):WaitForChild("KnifeHit")
 
--- Toggle States
-local alwaysSeekerEnabled = false
-local autoTauntEnabled = false
-local espEnabled = false
-local espObjects = {}
+-- Function to find the nearest alive player
+local function getNearestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge -- Start with infinity
 
--- [[ KEY SYSTEM SETUP ]]
-local CorrectKey = "paintandseek"
+    local myCharacter = LocalPlayer.Character
+    if not myCharacter then return nil end
+    local myRoot = myCharacter:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
 
-local KeyTab = Window:Tab({
-    Title = "Key System",
-    Icon = "rbxassetid://10734950309"
-})
-
--- Placeholder variables for hidden tabs
-local MainTab, PlayerTab, VisualsTab
-
--- Function to load the actual cheat interface upon correct key
-local function LoadCheatHub()
-    -- Key System cleanup notification or text change
-    KeyTab:Paragraph({
-        Title = "Access Granted!",
-        Desc = "Thank you for using Paint And Seek Cheat."
-    })
-    
-    -- [[ TAB 1: Main Features ]]
-    MainTab = Window:Tab({
-        Title = "Main",
-        Icon = "rbxassetid://10723415903"
-    })
-
-    MainTab:Paragraph({
-        Title = "Welcome!",
-        Desc = "Paint and Seek Hub. Make sure to report bugs to mikmikuser123!"
-    })
-
-    MainTab:Button({
-        Title = "Be A Seeker",
-        Desc = "Requests to join as a seeker once.",
-        Callback = function()
-            local args = { true }
-            JoinAsSeekerResponse:FireServer(unpack(args))
-            print("[WindUI] Requested Seeker once.")
-        end
-    })
-
-    MainTab:Toggle({
-        Title = "Always Be A Seeker",
-        Desc = "Loops the seeker request continuously.",
-        Value = false,
-        Callback = function(state)
-            alwaysSeekerEnabled = state
-            if alwaysSeekerEnabled then
-                task.spawn(function()
-                    local args = { true }
-                    while alwaysSeekerEnabled do
-                        JoinAsSeekerResponse:FireServer(unpack(args))
-                        task.wait(1)
+    for _, player in ipairs(Players:GetPlayers()) do
+        -- Ensure we aren't targeting ourselves
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character then
+                local root = character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                
+                -- Check if the player is alive and has a root part
+                if root and humanoid and humanoid.Health > 0 then
+                    local distance = (myRoot.Position - root.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        -- Target a reliable part like the HumanoidRootPart or Torso
+                        closestPlayer = root 
                     end
-                end)
+                end
             end
         end
-    })
-
-    MainTab:Toggle({
-        Title = "Auto Taunt",
-        Desc = "Automatically triggers taunts periodically.",
-        Value = false,
-        Callback = function(state)
-            autoTauntEnabled = state
-            if autoTauntEnabled then
-                task.spawn(function()
-                    local args = { true }
-                    while autoTauntEnabled do
-                        JoinAsSeekerResponse:FireServer(unpack(args))
-                        task.wait(1) 
-                    end
-                end)
-            end
-        end
-    })
-
-    -- [[ TAB 2: Player Adjustments ]]
-    PlayerTab = Window:Tab({
-        Title = "Player",
-        Icon = "rbxassetid://10747373151"
-    })
-
-    PlayerTab:Slider({
-        Title = "Walk Speed",
-        Desc = "Adjust your character's movement speed.",
-        Min = 16,
-        Max = 150,
-        Default = 16,
-        Callback = function(value)
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.WalkSpeed = value
-            end
-        end
-    })
-
-    PlayerTab:Slider({
-        Title = "Jump Power",
-        Desc = "Adjust your character's jump height.",
-        Min = 50,
-        Max = 200,
-        Default = 50,
-        Callback = function(value)
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.UseJumpPower = true
-                LocalPlayer.Character.Humanoid.JumpPower = value
-            end
-        end
-    })
-
-    -- [[ TAB 3: Visuals ]]
-    VisualsTab = Window:Tab({
-        Title = "Visuals",
-        Icon = "rbxassetid://10723346959"
-    })
-
-    local function applyESP(player)
-        if player == LocalPlayer then return end
-        local function setupCharacter(char)
-            if espObjects[player] then espObjects[player]:Destroy() end
-            if espEnabled then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "ESP_Highlight"
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.FillTransparency = 0.5
-                highlight.OutlineTransparency = 0
-                highlight.Adornee = char
-                highlight.Parent = char
-                espObjects[player] = highlight
-            end
-        end
-        if player.Character then setupCharacter(player.Character) end
-        player.CharacterAdded:Connect(setupCharacter)
     end
 
-    VisualsTab:Toggle({
-        Title = "Player ESP",
-        Desc = "See players/seekers through walls using highlights.",
-        Value = false,
-        Callback = function(state)
-            espEnabled = state
-            if espEnabled then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    applyESP(player)
-                end
-                local joinConnection
-                joinConnection = Players.PlayerAdded:Connect(applyESP)
-                espObjects["JoinConnection"] = joinConnection
-            else
-                if espObjects["JoinConnection"] then
-                    espObjects["JoinConnection"]:Disconnect()
-                    espObjects["JoinConnection"] = nil
-                end
-                for player, obj in pairs(espObjects) do
-                    if typeof(obj) == "Instance" then obj:Destroy() end
-                    espObjects[player] = nil
-                end
-            end
-        end
-    })
-
-    -- Jump directly to the unlocked main menu
-    Window:SelectTab(MainTab)
+    return closestPlayer
 end
 
--- Key Input Interface
-KeyTab:Paragraph({
-    Title = "Verification Required",
-    Desc = "Please enter the correct access key below to unlock the cheat features."
-})
-
-local enteredKey = ""
-
-KeyTab:Input({
-    Title = "Enter Key",
-    Desc = "Case-sensitive key system.",
-    Placeholder = "Type key here...",
-    Callback = function(text)
-        enteredKey = text
+-- Example execution trigger
+-- You can bind this to your throw action or keybind
+local function targetNearest()
+    local targetPart = getNearestPlayer()
+    
+    if targetPart then
+        local args = {
+            "throw",
+            targetPart
+        }
+        KnifeHit:FireServer(unpack(args))
+    else
+        print("No valid target found nearby.")
     end
-})
+end
 
-KeyTab:Button({
-    Title = "Verify Key",
-    Desc = "Checks if your entered key is correct.",
-    Callback = function()
-        if enteredKey == CorrectKey then
-            print("[Key System] Correct key! Loading...")
-            LoadCheatHub()
-        else
-            print("[Key System] Incorrect key entered.")
-            -- If WindUI supports native alerts, they can go here; otherwise console handles it.
-        end
-    end
-})
-
--- Initialize strictly on the Key Tab
-Window:SelectTab(KeyTab)
+-- Call the function
+targetNearest()
